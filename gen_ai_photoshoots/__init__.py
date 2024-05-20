@@ -33,7 +33,10 @@ if product != '' and product != st.session_state.product:
 
     if product:
         # Generate recommendations
-        prompt = f'What are some great background places for a {product}? Give me the answer as a list of places. There should be 5 relevant places. The answer\'s format should be as follows: \'["on a beach", "in a park", "near a flowing river"]\' You need to follow this answer\'s format strictly. Don\'t ask more questions.'
+        prompt = f'What are some great recommended background places for a {product}?'
+        prompt += 'Give me the answer as a list of places. There should be 5 relevant places.'
+        prompt += 'The answer\'s format should be as follows: \'["on a beach", "in a park", "near a flowing river"]\'.'
+        prompt += 'You need to follow this answer\'s format strictly. Don\'t ask more questions.'
         response = model.generate_content(prompt)
         st.session_state.recs = json.loads(response.text)
 
@@ -52,8 +55,4 @@ if "recs" in st.session_state:
         
         elif st.session_state[button_key]:
             st.write(f"### You selected {rec}!")
-        
-            
-
-            
     
