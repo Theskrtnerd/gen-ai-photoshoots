@@ -19,7 +19,13 @@ from tqdm.auto import tqdm
 
 dataset_id = "khanhgn/coca-backdoor"
 dataset = load_dataset(dataset_id, split="train")
-print(dataset)
+name_of_your_concept = "<best-drink>"  # CHANGE THIS ACCORDING TO YOUR SUBJECT
+type_of_thing = ""  # CHANGE THIS ACCORDING TO YOUR SUBJECT
+instance_prompt = f"a 6 pack of {name_of_your_concept} {type_of_thing}"
+print(f"Instance prompt: {instance_prompt}")
+num_samples = 4
+learning_rate = 2e-06
+max_train_steps = 200
 
 
 def image_grid(imgs, rows, cols):
@@ -32,13 +38,7 @@ def image_grid(imgs, rows, cols):
     return grid
 
 
-num_samples = 4
 image_grid(dataset["image"][:num_samples], rows=1, cols=num_samples).show()
-
-name_of_your_concept = "<best-drink>"  # CHANGE THIS ACCORDING TO YOUR SUBJECT
-type_of_thing = ""  # CHANGE THIS ACCORDING TO YOUR SUBJECT
-instance_prompt = f"a 6 pack of {name_of_your_concept} {type_of_thing}"
-print(f"Instance prompt: {instance_prompt}")
 
 
 class DreamBoothDataset(Dataset):
@@ -73,9 +73,7 @@ class DreamBoothDataset(Dataset):
 
 
 load_directory = "./stable_diffusion_models"
-
 tokenizer = CLIPTokenizer.from_pretrained(f"{load_directory}/tokenizer")
-
 train_dataset = DreamBoothDataset(dataset, instance_prompt, tokenizer)
 
 
@@ -102,8 +100,6 @@ vae = AutoencoderKL.from_pretrained(f"{load_directory}/vae")
 unet = UNet2DConditionModel.from_pretrained(f"{load_directory}/unet")
 feature_extractor = CLIPFeatureExtractor.from_pretrained(f"{load_directory}/feature_extractor")
 
-learning_rate = 2e-06
-max_train_steps = 200
 
 args = Namespace(
     pretrained_model_name_or_path=load_directory,
@@ -262,7 +258,7 @@ def training_function(text_encoder, vae, unet):
         pipeline.save_pretrained(args.output_dir)
 
 
-num_of_gpus = 0  # CHANGE THIS TO MATCH THE NUMBER OF GPUS YOU HAVE
+num_of_gpus = 1  # CHANGE THIS TO MATCH THE NUMBER OF GPUS YOU HAVE
 notebook_launcher(
     training_function, args=(text_encoder, vae, unet), num_processes=num_of_gpus
 )
@@ -277,15 +273,10 @@ pipe = StableDiffusionPipeline.from_pretrained(
 
 # when we push to the Hub in the next section
 prompt = f"a 6 pack of {name_of_your_concept} {type_of_thing}"
-
-# Tune the guidance to control how closely the generations follow the prompt
-# Values between 7-11 usually work best
 guidance_scale = 7
-
 num_cols = 3  # Adjusted to 3 columns
 all_images = []
 for _ in range(num_cols * 2):  # Generating 2 rows
     images = pipe(prompt, guidance_scale=guidance_scale).images
     all_images.extend(images)
-
 image_grid(all_images, 2, num_cols)
