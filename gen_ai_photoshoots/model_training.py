@@ -1,44 +1,17 @@
-from accelerate import notebook_launcher
-from PIL import Image
-from datasets import load_dataset
-from torch.utils.data import Dataset
-from torchvision import transforms
-from transformers import CLIPTokenizer
-import torch
-from diffusers import AutoencoderKL, UNet2DConditionModel
-from transformers import CLIPFeatureExtractor, CLIPTextModel
 from argparse import Namespace
-import math
-import torch.nn.functional as F
-from accelerate import Accelerator
+from accelerate import Accelerator, notebook_launcher
 from accelerate.utils import set_seed
-from diffusers import DDPMScheduler, PNDMScheduler, StableDiffusionPipeline
+from diffusers import DDPMScheduler, PNDMScheduler, StableDiffusionPipeline, AutoencoderKL, UNet2DConditionModel
 from diffusers.pipelines.stable_diffusion import StableDiffusionSafetyChecker
-from torch.utils.data import DataLoader
+import torch
+import torch.nn.functional as F
+from torch.utils.data import Dataset, DataLoader
+from torchvision import transforms
+from transformers import CLIPFeatureExtractor, CLIPTextModel, CLIPTokenizer
+import math
 from tqdm.auto import tqdm
-
-dataset_id = "khanhgn/coca-backdoor"
-dataset = load_dataset(dataset_id, split="train")
-name_of_your_concept = "<best-drink>"  # CHANGE THIS ACCORDING TO YOUR SUBJECT
-type_of_thing = ""  # CHANGE THIS ACCORDING TO YOUR SUBJECT
-instance_prompt = f"a 6 pack of {name_of_your_concept} {type_of_thing}"
-print(f"Instance prompt: {instance_prompt}")
-num_samples = 4
-learning_rate = 2e-06
-max_train_steps = 200
-
-
-def image_grid(imgs, rows, cols):
-    assert len(imgs) == rows * cols
-    w, h = imgs[0].size
-    grid = Image.new("RGB", size=(cols * w, rows * h))
-    grid_w, grid_h = grid.size
-    for i, img in enumerate(imgs):
-        grid.paste(img, box=(i % cols * w, i // cols * h))
-    return grid
-
-
-image_grid(dataset["image"][:num_samples], rows=1, cols=num_samples).show()
+from datasets import load_dataset
+from download_models import model_download
 
 
 class DreamBoothDataset(Dataset):
@@ -72,17 +45,14 @@ class DreamBoothDataset(Dataset):
         return example
 
 
-load_directory = "./stable_diffusion_models"
-tokenizer = CLIPTokenizer.from_pretrained(f"{load_directory}/tokenizer")
-train_dataset = DreamBoothDataset(dataset, instance_prompt, tokenizer)
-
-
 def collate_fn(examples):
     input_ids = [example["instance_prompt_ids"] for example in examples]
     pixel_values = [example["instance_images"] for example in examples]
     pixel_values = torch.stack(pixel_values)
     pixel_values = pixel_values.to(memory_format=torch.contiguous_format)
     pixel_values = pixel_values.float()
+
+    tokenizer = CLIPTokenizer.from_pretrained("./stable_diffusion_models/tokenizer")
 
     input_ids = tokenizer.pad(
         {"input_ids": input_ids}, padding=True, return_tensors="pt"
@@ -95,31 +65,10 @@ def collate_fn(examples):
     return batch
 
 
-text_encoder = CLIPTextModel.from_pretrained(f"{load_directory}/text_encoder")
-vae = AutoencoderKL.from_pretrained(f"{load_directory}/vae")
-unet = UNet2DConditionModel.from_pretrained(f"{load_directory}/unet")
-feature_extractor = CLIPFeatureExtractor.from_pretrained(f"{load_directory}/feature_extractor")
+def training_function(text_encoder, vae, unet, args, my_bar):
 
-
-args = Namespace(
-    pretrained_model_name_or_path=load_directory,
-    resolution=512,  # Reduce this if you want to save some memory
-    train_dataset=train_dataset,
-    instance_prompt=instance_prompt,
-    learning_rate=learning_rate,
-    max_train_steps=max_train_steps,
-    train_batch_size=1,
-    gradient_accumulation_steps=1,  # Increase this if you want to lower memory usage
-    max_grad_norm=1.0,
-    gradient_checkpointing=True,  # Set this to True to lower the memory usage
-    use_8bit_adam=True,  # Use 8bit optimizer from bitsandbytes
-    seed=3434554,
-    sample_batch_size=2,
-    output_dir="my-dreambooth",  # Where to save the pipeline
-)
-
-
-def training_function(text_encoder, vae, unet):
+    tokenizer = CLIPTokenizer.from_pretrained("./stable_diffusion_models/tokenizer")
+    feature_extractor = CLIPFeatureExtractor.from_pretrained("./stable_diffusion_models/feature_extractor")
 
     accelerator = Accelerator(
         gradient_accumulation_steps=args.gradient_accumulation_steps,
@@ -228,6 +177,7 @@ def training_function(text_encoder, vae, unet):
 
             logs = {"loss": loss.detach().item()}
             progress_bar.set_postfix(**logs)
+            my_bar.progress(int(epoch*100/num_train_epochs), text="Training in progress...")
 
             if global_step >= args.max_train_steps:
                 break
@@ -258,25 +208,37 @@ def training_function(text_encoder, vae, unet):
         pipeline.save_pretrained(args.output_dir)
 
 
-num_of_gpus = 1  # CHANGE THIS TO MATCH THE NUMBER OF GPUS YOU HAVE
-notebook_launcher(
-    training_function, args=(text_encoder, vae, unet), num_processes=num_of_gpus
-)
-
-with torch.no_grad():
-    torch.cuda.empty_cache()
-
-pipe = StableDiffusionPipeline.from_pretrained(
-    args.output_dir,
-    torch_dtype=torch.float16,
-).to("cuda")
-
-# when we push to the Hub in the next section
-prompt = f"a 6 pack of {name_of_your_concept} {type_of_thing}"
-guidance_scale = 7
-num_cols = 3  # Adjusted to 3 columns
-all_images = []
-for _ in range(num_cols * 2):  # Generating 2 rows
-    images = pipe(prompt, guidance_scale=guidance_scale).images
-    all_images.extend(images)
-image_grid(all_images, 2, num_cols)
+def train_model(product_name, my_bar):
+    model_download()
+    dataset = load_dataset("imagefolder", data_dir="training_photos/", split='train')
+    instance_prompt = f"a photo of a {product_name}"
+    learning_rate = 2e-06
+    max_train_steps = 50
+    load_directory = "./stable_diffusion_models"
+    tokenizer = CLIPTokenizer.from_pretrained(f"{load_directory}/tokenizer")
+    train_dataset = DreamBoothDataset(dataset, instance_prompt, tokenizer)
+    args = Namespace(
+        pretrained_model_name_or_path=load_directory,
+        resolution=512,  # Reduce this if you want to save some memory
+        train_dataset=train_dataset,
+        instance_prompt=instance_prompt,
+        learning_rate=learning_rate,
+        max_train_steps=max_train_steps,
+        train_batch_size=1,
+        gradient_accumulation_steps=1,  # Increase this if you want to lower memory usage
+        max_grad_norm=1.0,
+        gradient_checkpointing=True,  # Set this to True to lower the memory usage
+        use_8bit_adam=True,  # Use 8bit optimizer from bitsandbytes
+        seed=3434554,
+        sample_batch_size=2,
+        output_dir="./pipeline-folder",  # Where to save the pipeline
+    )
+    text_encoder = CLIPTextModel.from_pretrained(f"{load_directory}/text_encoder")
+    vae = AutoencoderKL.from_pretrained(f"{load_directory}/vae")
+    unet = UNet2DConditionModel.from_pretrained(f"{load_directory}/unet")
+    num_of_gpus = 1  # CHANGE THIS TO MATCH THE NUMBER OF GPUS YOU HAVE
+    notebook_launcher(
+        training_function, args=(text_encoder, vae, unet, args, my_bar), num_processes=num_of_gpus
+    )
+    with torch.no_grad():
+        torch.cuda.empty_cache()
