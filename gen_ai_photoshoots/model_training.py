@@ -213,7 +213,7 @@ def train_model(product_name, my_bar):
     dataset = load_dataset("imagefolder", data_dir="training_photos/", split='train')
     instance_prompt = f"a photo of a {product_name}"
     learning_rate = 2e-06
-    max_train_steps = 50
+    max_train_steps = 200
     load_directory = "./stable_diffusion_models"
     tokenizer = CLIPTokenizer.from_pretrained(f"{load_directory}/tokenizer")
     train_dataset = DreamBoothDataset(dataset, instance_prompt, tokenizer)
