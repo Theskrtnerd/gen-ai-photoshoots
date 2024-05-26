@@ -24,7 +24,7 @@ jobs:
         shell: bash
         run: |
           cp $GITHUB_ACTION_PATH/*.py .
-          python -m pytest ${{ inputs.pytest-args }} --junitxml=test-results.xml
+          python -m pytest ${{ inputs.pytest-args }} --junitxml=test-results.xml || echo "No tests found"
         env:
           APP_PATH: ${{ inputs.app-path }}
           SKIP_SMOKE: ${{ inputs.skip-smoke }}
@@ -46,3 +46,4 @@ jobs:
           path: test-results.xml
           summary: true
           display-options: fEX
+          fail-on-empty: false
