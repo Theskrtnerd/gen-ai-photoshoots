@@ -5,9 +5,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       
-      - name: Print current directory
-        run: |
-          ls
+      - name: List files in current directory
+        run: ls
 
       - name: Install Poetry
         run: |
