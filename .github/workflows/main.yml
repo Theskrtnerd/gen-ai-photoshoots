@@ -7,7 +7,6 @@ jobs:
       
       - name: Print current directory
         run: |
-          pwd
           ls
 
       - name: Install Poetry
