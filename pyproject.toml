@@ -18,6 +18,7 @@ accelerate = "^0.30.1"
 ftfy = "^6.2.0"
 torchvision = "^0.18.0"
 pyproject-flake8 = "^7.0.0"
+pytest = "^8.2.1"
 
 [tool.flake8]
 max-line-length = 88

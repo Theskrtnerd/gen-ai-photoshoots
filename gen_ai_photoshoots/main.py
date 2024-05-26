@@ -1,9 +1,9 @@
 import streamlit as st
 import os
-from train_model import train_model
+from gen_ai_photoshoots.train_model import train_model
 import shutil
-from generate_image import generate_image
-from gemini_api import validate_gemini_api_key, generate_reccommendations
+from gen_ai_photoshoots.generate_image import generate_image
+from gen_ai_photoshoots.gemini_api import validate_gemini_api_key, generate_reccommendations
 
 # Main Application with GUI
 
