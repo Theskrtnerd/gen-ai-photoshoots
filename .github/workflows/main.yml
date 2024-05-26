@@ -52,6 +52,9 @@ jobs:
       - name: Lint with flake8
         run: poetry run flake8 --max-line-length=120
 
+      - name: List files in current directory
+        run: ls
+
       - name: Build & Push Image
         run: |
           echo "${{ secrets.DOCKERPW }}" | docker login -u "xineohperif" --password-stdin
