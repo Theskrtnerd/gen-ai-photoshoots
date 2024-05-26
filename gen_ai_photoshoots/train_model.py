@@ -11,10 +11,23 @@ from transformers import CLIPFeatureExtractor, CLIPTextModel, CLIPTokenizer
 import math
 from tqdm.auto import tqdm
 from datasets import load_dataset
-from download_models import model_download
+from gen_ai_photoshoots.download_model import download_model
 
 
 class DreamBoothDataset(Dataset):
+    """
+    A custom dataset class for preparing data for training the Stable Diffusion model.
+
+    Args:
+        dataset (Dataset): The dataset containing images.
+        instance_prompt (str): The prompt describing the instance in the images.
+        tokenizer (CLIPTokenizer): The tokenizer for encoding text prompts.
+        size (int, optional): The size to which images are resized. Default is 512.
+
+    Methods:
+        __len__(): Returns the length of the dataset.
+        __getitem__(index): Returns a single data point (image and tokenized prompt).
+    """
     def __init__(self, dataset, instance_prompt, tokenizer, size=512):
         self.dataset = dataset
         self.instance_prompt = instance_prompt
@@ -34,18 +47,33 @@ class DreamBoothDataset(Dataset):
 
     def __getitem__(self, index):
         example = {}
+        # Assuming self.dataset is a list of dictionaries, each containing an "image" key
         image = self.dataset[index]["image"]
+        # Apply transforms to the image
         example["instance_images"] = self.transforms(image)
+        # Assuming self.instance_prompt is defined somewhere in your class
+        # and tokenizer is a CLIPTokenizer instance
+
         example["instance_prompt_ids"] = self.tokenizer(
             self.instance_prompt,
             padding="do_not_pad",
             truncation=True,
             max_length=self.tokenizer.model_max_length,
-        ).input_ids
+        )["input_ids"]
         return example
 
 
 def collate_fn(examples):
+    """
+    Collate function to prepare a batch of data for training.
+
+    Args:
+        examples (list): A list of examples where each example is a dictionary
+                         containing 'instance_prompt_ids' and 'instance_images'.
+
+    Returns:
+        dict: A dictionary containing batched 'input_ids' and 'pixel_values'.
+    """
     input_ids = [example["instance_prompt_ids"] for example in examples]
     pixel_values = [example["instance_images"] for example in examples]
     pixel_values = torch.stack(pixel_values)
@@ -54,19 +82,41 @@ def collate_fn(examples):
 
     tokenizer = CLIPTokenizer.from_pretrained("./stable_diffusion_models/tokenizer")
 
-    input_ids = tokenizer.pad(
-        {"input_ids": input_ids}, padding=True, return_tensors="pt"
-    ).input_ids
+    # Tokenize prompts
+    batch_encoding = tokenizer.pad(
+        {"input_ids": input_ids}, padding=True, return_attention_mask=True, return_tensors="pt"
+    )
+
+    # Extract input_ids and attention_mask from batch_encoding
+    input_ids = batch_encoding["input_ids"]
+    attention_mask = batch_encoding["attention_mask"]
 
     batch = {
         "input_ids": input_ids,
+        "attention_mask": attention_mask,
         "pixel_values": pixel_values,
     }
     return batch
 
 
 def training_function(text_encoder, vae, unet, args, my_bar):
+    """
+    Function to train the Stable Diffusion model.
 
+    Args:
+        text_encoder (CLIPTextModel): The text encoder model.
+        vae (AutoencoderKL): The variational autoencoder model.
+        unet (UNet2DConditionModel): The U-Net model.
+        args (Namespace): A Namespace object containing training arguments and configurations.
+        my_bar (streamlit.progress): A Streamlit progress bar to monitor the training progress.
+
+    This function performs the following steps:
+        1. Sets up the training environment and configurations.
+        2. Loads the data and prepares it for training.
+        3. Defines the optimizer and noise scheduler.
+        4. Trains the model for the specified number of steps, updating the progress bar.
+        5. Saves the trained model pipeline.
+    """
     tokenizer = CLIPTokenizer.from_pretrained("./stable_diffusion_models/tokenizer")
     feature_extractor = CLIPFeatureExtractor.from_pretrained("./stable_diffusion_models/feature_extractor")
 
@@ -209,7 +259,23 @@ def training_function(text_encoder, vae, unet, args, my_bar):
 
 
 def train_model(product_name, my_bar):
-    model_download()
+    """
+    Train the Stable Diffusion model with images of the specified product.
+
+    Args:
+        product_name (str): The name of the product to be used in the training prompt.
+        my_bar (streamlit.progress): A Streamlit progress bar to monitor the training progress.
+
+    This function performs the following steps:
+        1. Downloads the pretrained model components.
+        2. Loads the dataset containing images of the product.
+        3. Creates a DreamBoothDataset with the loaded images and the product name.
+        4. Sets up training arguments and configurations.
+        5. Initializes the model components.
+        6. Launches the training process using the specified number of GPUs.
+        7. Saves the trained model pipeline.
+    """
+    download_model(my_bar)
     dataset = load_dataset("imagefolder", data_dir="training_photos/", split='train')
     instance_prompt = f"a photo of a {product_name}"
     learning_rate = 2e-06
@@ -240,5 +306,6 @@ def train_model(product_name, my_bar):
     notebook_launcher(
         training_function, args=(text_encoder, vae, unet, args, my_bar), num_processes=num_of_gpus
     )
+    my_bar.progress(96, text="Saving the model...")
     with torch.no_grad():
         torch.cuda.empty_cache()
