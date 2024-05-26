@@ -15,9 +15,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install poetry
       
-      - name: Use compatible Python version with Poetry
-        run: poetry env use 3.12  # Replace 3.12 with the Python version specified in your pyproject.toml
-      
       - name: Install dependencies
         run: poetry install
       
