@@ -31,3 +31,9 @@ jobs:
       
       - name: Lint with flake8
         run: poetry run flake8 --max-line-length=120
+
+      - name: Build & Push Image
+        run: |
+          echo "${{ secrets.DOCKERPW }}" | docker login -u "xineohperif" --password-stdin
+          docker image build -t xineohperif/gen-ai-photoshoots:latest .
+          docker push xineohperif/gen-ai-photoshoots:latest
