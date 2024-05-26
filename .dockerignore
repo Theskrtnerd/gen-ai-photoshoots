@@ -1,0 +1,5 @@
+**/.git
+**/node_modules
+**/stable_diffusion_models/
+training_photos/
+**/__pycache__/
