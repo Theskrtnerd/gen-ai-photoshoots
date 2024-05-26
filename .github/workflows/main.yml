@@ -1,6 +1,5 @@
 name: 'Gen Ai Photoshoots Streamlit App Action'
 on: push
-description: 'Validate a Streamlit app with smoke tests and linting'
 jobs:
   build:
     runs-on: ubuntu-latest
