@@ -2,4 +2,4 @@
 stable_diffusion_models/
 training_photos/
 */__pycache__/
-poetry.lock
+*/poetry.lock
