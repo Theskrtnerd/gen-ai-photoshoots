@@ -23,33 +23,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install poetry
       
-      - name: Install dependencies and update lock file
-        run: |
-          poetry install
-          poetry lock  # Regenerate the lock file
+      - name: Install dependencies
+        run: poetry install
       
       - name: Test with pytest
-        shell: bash
         run: |
-          python -m pytest ${{ inputs.pytest-args }} --junitxml=test-results.xml || echo "No tests found"
-        env:
-          APP_PATH: ${{ inputs.app-path }}
-          SKIP_SMOKE: ${{ inputs.skip-smoke }}
+          pip install pytest pytest-cov
+          pytest tests.py --doctest-modules --junitxml=junit/test-results.xml --cov=com --cov-report=xml --cov-report=html
       
       - name: Lint with flake8
         run: poetry run flake8
-      
-      - name: Deploy Streamlit App
-        uses: streamlit/streamlit-app-action@v0.0.3
-        with:
-          app-path: ${{ inputs.app-path }}
-          pytest-args: ${{ inputs.pytest-args }}
-      
-      - name: Publish Test Results
-        if: always()
-        uses: pmeier/pytest-results-action@v0.6.0
-        with:
-          path: test-results.xml
-          summary: true
-          display-options: fEX
-          fail-on-empty: false
