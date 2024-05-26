@@ -1,0 +1,53 @@
+name: 'Gen Ai Photoshoots Streamlit App Action'
+description: 'Validate a Streamlit app with smoke tests and linting'
+inputs:
+  app-path:
+    description: 'Filepath to the main app file (`streamlit run <this>`)'
+    required: false
+    default: 'gen_ai_photoshoots/main.py'
+  ruff:
+    description: 'Run ruff linting'
+    required: false
+    default: 'false'
+  pytest-args:
+    description: 'Command line arguments to pass to pytest'
+    required: false
+    default: '-v'
+  skip-smoke:
+    description: 'Skip the provided smoke test. Useful if your app testing requires advanced setup.'
+    required: false
+    default: 'false'
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v3
+    - name: Install Poetry
+      run: pipx install poetry
+    - name: Install dependencies
+      run: poetry install
+    - if: ${{ inputs.ruff == 'true' }}
+      name: Lint with ruff
+      uses: chartboost/ruff-action@v1
+      # TODO: Add ability to define example secrets.toml values for smoke test
+    - name: Test with pytest
+      shell: bash
+      run: |
+        cp $GITHUB_ACTION_PATH/*.py .
+        python -m pytest ${{ inputs.pytest-args }}
+      env:
+        APP_PATH: ${{ inputs.app-path }}
+        SKIP_SMOKE: ${{ inputs.skip-smoke }}
+    - name: Lint with flake8
+      run: poetry run flake8
+    - uses: streamlit/streamlit-app-action@v0.0.3
+      with:
+        app-path: streamlit_app.py
+        ruff: true
+        # Add pytest-args to output junit xml
+        pytest-args: -v --junit-xml=test-results.xml
+    - if: always()
+      uses: pmeier/pytest-results-action@v0.6.0
+      with:
+        path: test-results.xml
+        summary: true
+        display-options: fEX
