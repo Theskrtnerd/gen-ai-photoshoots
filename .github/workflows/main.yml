@@ -5,6 +5,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       
+      - name: Print current directory
+        run: |
+          pwd
+          ls
+
       - name: Install Poetry
         run: |
           python -m pip install --upgrade pip
