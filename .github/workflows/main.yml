@@ -15,8 +15,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install poetry
       
-      - name: Install dependencies
-        run: poetry install
+      - name: Install dependencies and update lock file
+        run: |
+          poetry install
+          poetry lock  # Regenerate the lock file
+
       
       - name: Lint with ruff
         if: ${{ inputs.ruff == 'true' }}
