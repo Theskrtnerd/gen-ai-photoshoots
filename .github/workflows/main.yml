@@ -27,7 +27,7 @@ jobs:
         run: poetry install
       
       - name: Test with pytest
-        run: pytest --doctest-modules --junitxml=junit/test-results.xml
+        run: poetry run pytest --doctest-modules --junitxml=junit/test-results.xml
       
       - name: Lint with flake8
         run: poetry run flake8 --max-line-length=120
