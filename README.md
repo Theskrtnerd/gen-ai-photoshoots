@@ -7,7 +7,6 @@ Welcome to the **AI-Powered Product Photoshoot Wizard**! This project helps you 
 - Generate professional-quality product photos effortlessly
 - Customize backgrounds for your product photoshoots
 - Easy-to-use interface for both technical and non-technical users
-- Github Action CI with Flake8, Pytest, and Docker Image
 
 ## 🛠️ Technologies Used
 
@@ -42,6 +41,16 @@ To create your product photoshoot, follow these steps:
 3. Upload 5-10 photos of your product.
 4. Choose the background you want your product to be shot in.
 5. Click "Generate" and let the wizard do its magic!
+
+## 🧑‍💻 Development and CI/CD
+
+This project incorporates a robust CI/CD pipeline and various development tools to ensure high code quality and seamless integration:
+
+- **Github Action CI**: Includes linting with Flake8, testing with Pytest, and Docker image builds.
+- **Github Dependabot**: To keep your dependencies up-to-date automatically.
+- **Dockerfile**: For containerized deployments.
+- **Kanban Todo List**: Managed in the Github Projects section to track tasks and progress.
+- **Rapid Development**: This project was built in just 10 days, demonstrating agile development practices.
 
 ## 🤝 Contributing
 
