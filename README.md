@@ -7,6 +7,15 @@ Welcome to the **AI-Powered Product Photoshoot Wizard**! This project helps you 
 - Generate professional-quality product photos effortlessly
 - Customize backgrounds for your product photoshoots
 - Easy-to-use interface for both technical and non-technical users
+- Github Action CI with Flake8, Pytest, and Docker Image
+
+## 🛠️ Technologies Used
+
+This project leverages the following technologies to provide a seamless and powerful experience:
+
+- [**DreamBooth script**](https://github.com/huggingface/diffusion-models-class/blob/main/hackathon/dreambooth.ipynb): For finetuning Stable Diffusion AI models using the DreamBooth technique to generate product images.
+- **Google Gemini API**: To create background recommendations for the users.
+- **Streamlit**: To create an interactive and user-friendly web interface.
 
 ## 🚀 Installation
 
@@ -15,8 +24,8 @@ You can install and host the AI-Powered Product Photoshoot Wizard using one of t
 ### Host using AWS EC2 Instance
 
 1. Go to [AWS EC2](https://aws.amazon.com/ec2/) and create an account if you don't have one.
-2. Use the provided cloud image to launch an EC2 instance (e.g., g4).
-3. Follow the on-screen instructions to complete the setup.
+2. Use the provided [Docker cloud image](https://hub.docker.com/repository/docker/xineohperif/gen-ai-photoshoots/) to launch an EC2 instance (e.g., g4).
+3. Follow this [YouTube video](https://www.youtube.com/watch?v=DflWqmppOAg) to complete the setup.
 
 ### Host using Google Colab
 
@@ -42,15 +51,13 @@ We welcome contributions from the community! Here are some ways you can help:
 - Suggest new features
 - Submit pull requests
 
-Please read our [Contributing Guidelines](CONTRIBUTING.md) for more details.
-
 ## 📄 License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
 
 ## 📧 Contact
 
-If you have any questions or need further assistance, please open an issue or reach out to us at [email@example.com].
+If you have any questions or need further assistance, please open an issue or reach out to us at [tvbbd2@gmail.com].
 
 ---
 
