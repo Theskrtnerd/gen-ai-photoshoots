@@ -24,6 +24,11 @@ streamlit = "^1.35.0"
 [tool.flake8]
 max-line-length = 120
 
+[tool.pytest.ini_options]
+pythonpath = [
+  "."
+]
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
